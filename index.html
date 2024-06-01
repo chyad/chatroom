@@ -1,0 +1,97 @@
+
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>chatroom test</title>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.7.16/vue.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div v-for="e in messages">
+            {{e.name}}: {{e.message}} -- {{e.time}}
+        </div>
+
+        <div>
+            {{ typing?'someone is typing ...':'' }}
+        </div>
+
+        <br>
+
+        <input v-model="temp.name" placeholder="name" />
+        <input v-model="temp.message" placeholder="Send a message" @keydown.enter="sendchat" @keypress="isTyping" />
+        <button @click="sendchat">Chat</button>
+    </div>
+
+    <script>
+        var vm = new Vue({
+            el: "#app",
+            data: {
+                messages: [],
+                temp: {},
+                socket: null,
+                typing: false
+            },
+            mounted() {
+                this.socket = socket = io()
+
+                this.socket.on('newUser', (users)=>{
+
+                    socket.emit("sendchat", {name: users, 
+                                            message:'has joined the chat.',
+                                            time: new Date()})
+                })
+
+                this.socket.on("allMessage", obj => {
+                    console.log('received all messages')
+                    console.log(socket.id)
+                    
+                    this.messages = obj
+                })
+
+
+                this.socket.on("newchats", obj => {
+                    console.log('received new message')
+                    this.messages.push(obj)
+                })
+
+        
+                this.socket.on("someoneIsTyping", value => {
+                    this.typing = value
+                    
+                })
+
+
+            },
+            methods: {
+                sendchat() {
+                    if(this.temp.message != null){
+                        console.log('sending new message')
+                        var chat = {
+                                    name: this.temp.name ? `${this.temp.name} (${socket.id}) ` : socket.id, 
+                                    message: this.temp.message + '.',
+                                    time: new Date()
+                                    }
+                        
+                        console.log(chat.time)
+
+                        this.socket.emit("sendchat", chat)
+                        this.temp.message = null
+                    }
+                },
+
+                isTyping() {
+                    this.socket.emit("isTyping")
+                }
+            }
+        })
+    </script>
+</body>
+
+
+
+</html>
